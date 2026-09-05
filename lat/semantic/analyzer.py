@@ -680,13 +680,13 @@ class SemanticAnalyzer:
         return None
 
     def _check_eq(self, left: str, right: str) -> Optional[str]:
-        if left == right:
+        if left == right and left != "filum":
             return "integer"
         self.error(f"Operation 'eq' not supported for types '{left}' and '{right}'")
         return None
 
     def _check_neq(self, left: str, right: str) -> Optional[str]:
-        if left == right:
+        if left == right and left != "filum":
             return "integer"
         self.error(f"Operation 'neq' not supported for types '{left}' and '{right}'")
         return None
