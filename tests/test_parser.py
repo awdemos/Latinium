@@ -68,8 +68,10 @@ class TestParserDeclarations(unittest.TestCase):
         tree = self.parse('munus main() { arr: vec<integer> = [1 ... 5] }')
         decl = tree.functions[0].body[0]
         self.assertIsInstance(decl.value, ArrayRange)
-        self.assertEqual(decl.value.start, 1)
-        self.assertEqual(decl.value.end, 5)
+        self.assertIsInstance(decl.value.start, IntegerLiteral)
+        self.assertIsInstance(decl.value.end, IntegerLiteral)
+        self.assertEqual(decl.value.start.value, 1)
+        self.assertEqual(decl.value.end.value, 5)
 
     def test_pointer_declaration(self):
         tree = self.parse('munus main() { p: &integer }')

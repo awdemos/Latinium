@@ -1,52 +1,57 @@
 #!/usr/bin/env python3
 import glob
+import io
 import os
-import subprocess
 import sys
 import tempfile
 
+from lat.cli.compiler import build_execute
 
-def compile_file(filepath, use_ir=True, optimize=False):
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.vms', delete=False) as f:
-        out_path = f.name
-    
+
+def _run_build_execute(filepath, opt_args):
+    """Run the compiler for filepath in this process; capture stderr.
+
+    This avoids subprocess-with-string-interpolation entirely, removing
+    the Python code injection surface that existed in the previous
+    subprocess -c implementation.
+    """
+    out_path = tempfile.NamedTemporaryFile(mode='w', suffix='.vms', delete=False).name
+
     try:
-        flags = f'"--ir": True, "--opt": {optimize}'
-        cmd = [sys.executable, '-c', f'''
-import sys
-sys.path.insert(0, ".")
-from lat.cli import build_execute
-build_execute(
-    {{"input": "{filepath}"}},
-    {{"-o": "{out_path}", "-v": False, {flags}}}
-)
-''']
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-        compile_ok = result.returncode == 0 and 'Compiler Error' not in result.stderr and 'SEMANTIC ERROR' not in result.stderr
-        return compile_ok, out_path, result.stderr
+        req_args = {"input": filepath}
+        opt_args = dict(opt_args)
+        opt_args["-v"] = False
+        opt_args["-o"] = out_path
+
+        old_stderr = sys.stderr
+        sys.stderr = captured = io.StringIO()
+        try:
+            build_execute(req_args, opt_args)
+            returncode = 0
+        except SystemExit as exc:
+            returncode = exc.code if isinstance(exc.code, int) else 1
+        finally:
+            sys.stderr = old_stderr
+
+        stderr = captured.getvalue()
+        compile_ok = (
+            returncode == 0
+            and 'Compiler Error' not in stderr
+            and 'SEMANTIC ERROR' not in stderr
+        )
+        return compile_ok, out_path, stderr
     except Exception as e:
         return False, out_path, str(e)
+
+
+def compile_file(filepath, use_ir=True, optimize=False):
+    opt_args = {"--ir": True, "--opt": optimize}
+    return _run_build_execute(filepath, opt_args)
 
 
 def compile_ast(filepath):
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.vms', delete=False) as f:
-        out_path = f.name
-    
-    try:
-        cmd = [sys.executable, '-c', f'''
-import sys
-sys.path.insert(0, ".")
-from lat.cli import build_execute
-build_execute(
-    {{"input": "{filepath}"}},
-    {{"-o": "{out_path}", "-v": False, "--ast": True}}
-)
-''']
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-        compile_ok = result.returncode == 0 and 'Compiler Error' not in result.stderr and 'SEMANTIC ERROR' not in result.stderr
-        return compile_ok, out_path, result.stderr
-    except Exception as e:
-        return False, out_path, str(e)
+    opt_args = {"--ast": True}
+    return _run_build_execute(filepath, opt_args)
 
 
 def bytecode_valid(vms_path):
@@ -90,8 +95,6 @@ def bytecode_valid(vms_path):
 
 
 def test_file(filepath):
-    basename = os.path.splitext(os.path.basename(filepath))[0]
-    
     ir_compile_ok, ir_path, ir_compile_err = compile_file(filepath, use_ir=True)
     ast_compile_ok, ast_path, ast_compile_err = compile_ast(filepath)
     
