@@ -730,7 +730,7 @@ class TestSemanticArrayRange(TestSemanticBase):
     def test_array_range(self):
         prog = self.make_program(functions=[
             Function("main", [], None, [
-                Decl("arr", "vec<integer>", ArrayRange(1, 10))
+                Decl("arr", "vec<integer>", ArrayRange(IntegerLiteral(1), IntegerLiteral(10)))
             ])
         ])
         self.assertValid(prog)

@@ -164,7 +164,7 @@ def test_emit_write():
 def test_emit_main_entry():
     emitter = BytecodeEmitter()
     emitter.emit_main_entry()
-    assert emitter.output == ["start", "PUSHA main", "CALL", "stop"]
+    assert emitter.output == ["start", "PUSHI 0", "PUSHA main", "CALL", "POP 1", "stop"]
 
 
 def test_emit_function_prologue():
