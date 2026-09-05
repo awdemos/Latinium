@@ -466,7 +466,7 @@ class TestCodegenArrays(TestCodegenBase):
     def test_array_range(self):
         prog = self.make_program(functions=[
             Function("main", [], None, [
-                Decl("arr", "vec<integer>", ArrayRange(1, 3))
+                Decl("arr", "vec<integer>", ArrayRange(IntegerLiteral(1), IntegerLiteral(3)))
             ])
         ])
         code = self.generate(prog)
@@ -653,7 +653,7 @@ class TestCodegenEdgeCases(TestCodegenBase):
             ])
         ])
         code = self.generate(prog)
-        self.assertIn("PUSHS ''", code)
+        self.assertIn('PUSHS ""', code)
 
     def test_function_params(self):
         prog = self.make_program(functions=[
